@@ -10,7 +10,7 @@ To use, place the low resolution volumes in multi-page tiff format in the "input
 
 Note: With minimal modification, the 2D U-Net network, for instance, can be applied for denoising, to reproduce the results reported in Koktzoglou et al. Magn Reson Med. 2020 Aug;84(2):825-837. doi: 10.1002/mrm.28179. Epub 2020 Jan 23. (https://doi.org/10.1002/mrm.28179). For denoising (instead of super-resolution reconstruction), place the noisy volumes in a "input_low_res_Xfold" directory, and the higher signal-to-noise ratio volumes in the "input_high_res" folder. 
 
-Important configuration parameters are found early in the script and in particular, the 'combomatrix' lists which hold several important training and reconstruction parameters. Add more more item lists to perform other combinations of tests.
+Important configuration parameters are found early in the "train" and "predict" scripts. In particular, the 'combomatrix' lists hold several important training and reconstruction parameters. You can add more parameters to these lists.
 
 Note: 2D U-Net code is not included in the "models.py" file but an excellent version can be found here: https://github.com/pietz/unet-keras
 
