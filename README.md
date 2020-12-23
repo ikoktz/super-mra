@@ -1,8 +1,8 @@
-#Deep Learning Super-Resolution MRI / MRA
+## Deep Learning Super-Resolution MRI / MRA
 
 Code for performing 2D patch-based and 3D block-based deep learning super-resolution. Tested for MRA and MRI. Four deep neural networks are included, including a 2D U-Net (see note below regarding the 2D U-net), a 3D U-Net, a 2D serial convolution with residual connection (SCRC) neural network, and a 3D SCRC deep neural network.
 
-## Usage:
+# Usage:
 
 To use, place the low resolution volumes in multi-page *.tif format in the "input_low_res_Xfold" directory (where "X" is the reduction factor), and the corresponding high resolution volumes (also in *.tif format) in the "input_high_res" directory.
  *The 2D U-Net can be trained and then applied by running the "unet2d_train.py" and "unet2d_predict.py" scripts
