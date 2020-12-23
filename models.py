@@ -1,7 +1,8 @@
-from keras.models import Input, Model
-from keras.layers import Conv2D, Concatenate, MaxPooling2D, Conv2DTranspose, Conv3D, MaxPooling3D, Conv3DTranspose
-from keras.layers import UpSampling2D, UpSampling3D, Dropout, BatchNormalization, Activation
 import numpy as np
+from keras.layers import Conv2D, Concatenate, Conv3D, MaxPooling3D, Conv3DTranspose
+from keras.layers import UpSampling3D, Dropout, BatchNormalization, Activation
+from keras.models import Input, Model
+
 
 # 3D U-Net
 def unet3d(img_shape, out_ch=1, start_ch=64, depth=4, inc_rate=2., activation='relu',

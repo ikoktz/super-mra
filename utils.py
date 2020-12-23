@@ -1,14 +1,15 @@
+import multiprocessing
+import os
 import sys
+import time
+
 import cv2
 import numpy as np
 import scipy.ndimage as ndi
-import os
-from PIL import Image
 import tensorflow as tf
-from scipy.signal import convolve2d
-import time
-import multiprocessing
+from PIL import Image
 from joblib import Parallel, delayed
+from scipy.signal import convolve2d
 
 
 def cv2_clipped_zoom(img, zoom_factor):

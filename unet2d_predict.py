@@ -1,14 +1,6 @@
-import numpy as np
-import os, os.path
-from sklearn.feature_extraction import image
-from keras.models import model_from_json
-from PIL import Image
-import tensorflow as tf
-import sys
 import tifffile
-import time
-from joblib import Parallel, delayed
-import multiprocessing
+from keras.models import model_from_json
+
 from utils import *
 
 ###############################################################################
@@ -125,8 +117,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
                 stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
                 patch_select_mode)
-            else:
-                print("error in 2D Unet type .... quitting")
 
             ###############################################################################
             # load model architecture and weights from .json and .hdf5 files on disk

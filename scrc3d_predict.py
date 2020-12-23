@@ -1,15 +1,6 @@
-import numpy as np
-import os, os.path
-from sklearn.feature_extraction import image
-from keras.models import model_from_json
-from PIL import Image
-import tensorflow as tf
-import sys
 import tifffile
-import time
+from keras.models import model_from_json
 
-from joblib import Parallel, delayed
-import multiprocessing
 from utils import *
 
 ###############################################################################
