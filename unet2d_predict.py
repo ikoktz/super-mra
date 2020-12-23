@@ -95,9 +95,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
             batch_size = 1000
 
-            unet_dim = 2  # if unet_dim == 3, use Conv3D, etc
-            input_ch = 1 if not unet_dim == 2.5 else 3  # if input_ch==3, it's for 2.5D Unet with 3 input channels;
-                                                        # input_ch == 1 for normal 2D and 3D Unet
             blks_rand_shift_mode = False  # random block shift mode
 
             ###############################################################################
@@ -105,22 +102,13 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             ###############################################################################
             rstr = "res" if unet_resnet_mode else ""
             p = patches_per_set, patches_per_set_h, patches_per_set_l if patches_from_volume else patches_per_slc, patches_per_slc_h, patches_per_slc_l
-            if unet_dim == 2:
-                modelsuffix = "_unet2d" + rstr + "-" + "[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
-                    unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
-                    unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
-                    batch_size_train)
-                modelprefix = "model_" + str(blksz_2d[0]) + "x" + str(blksz_2d[1]) + "x" + str(p[0]) + "(" + str(
-                    p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
-            elif unet_dim == 2.5:
-                modelsuffix = "_unet2p5d" + rstr + "-" + "[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
-                    unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
-                    unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
-                    batch_size_train)
-                modelprefix = "model_" + str(blksz_2d[0]) + "x" + str(blksz_2d[1]) + "x" + str(p[0]) + "(" + str(
-                    p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
+            modelsuffix = "_unet2d" + rstr + "-" + "[" + str(stride_2d[0]) + 'x' + str(
+                stride_2d[1]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
+                unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
+                unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
+                batch_size_train)
+            modelprefix = "model_" + str(blksz_2d[0]) + "x" + str(blksz_2d[1]) + "x" + str(p[0]) + "(" + str(
+                p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
 
             # construct folder name where models are
             if loss_function == "mean_squared_error":
@@ -130,23 +118,13 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
                     patch_select_mode) + "_" + loss_function
 
-            if unet_dim == 2:
-                outpath = 'train_' + 'unet2d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
-            elif unet_dim == 2.5:
-                outpath = 'train_' + 'unet2p5d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
+            outpath = 'train_' + 'unet2d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
+                batch_size_train) + foldersuffix
 
-            if unet_dim == 2:
-                suffix_npy = "_unet2d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
-                    p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
-                    patch_select_mode)
-            elif unet_dim == 2.5:
-                suffix_npy = "_unet2pd5" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
-                    p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
-                    patch_select_mode)
+            suffix_npy = "_unet2d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
+                p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
+                stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
+                patch_select_mode)
             else:
                 print("error in 2D Unet type .... quitting")
 
@@ -266,35 +244,20 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 npadvoxs = tuple(np.subtract(volume_recon_ai.shape, volume1_shape_orig))
                 # print(npadvoxs,npadvoxs[0],npadvoxs[1],npadvoxs[2])
                 volume1p = np.pad(volume1, ((0, npadvoxs[0]), (0, npadvoxs[1]), (0, npadvoxs[2])), 'edge')
-                volume_s = np.zeros([volume1p.shape[0], volume1p.shape[1], input_ch], dtype=np.float16)
+                volume_s = np.zeros([volume1p.shape[0], volume1p.shape[1], 1], dtype=np.float16)
                 print('volume_s.shape', volume_s.shape)
                 for iSlc in range(minslc, maxslc, incslc):
 
-                    if unet_dim == 2:  # 2D Unet
-                        print('reconstructing slice', iSlc + 1, 'of', maxslc)
+                    print('reconstructing slice', iSlc + 1, 'of', maxslc)
 
-                        # get patches for target slice that will be predicted
-                        patches1 = get_patches(np.squeeze(volume1p[:, :, iSlc]), blksz_2d, stride_2d)
-                        # create arrays to store validation set
-                        xtest = np.zeros([patches1.shape[0], blksz_2d[0], blksz_2d[1], 1], dtype=np.float16)
-                        # save patches to test data set
-                        xtest[:, :, :, 0] = patches1[:, :, :]
-                        # delete some variables to save memory
-                        del patches1
-                    else:  # 2.5D Unet
-                        if iSlc == minslc:
-                            volume_s[:, :, 0] = volume1p[:, :, iSlc]
-                            volume_s[:, :, 1] = volume1p[:, :, iSlc]
-                            volume_s[:, :, 2] = volume1p[:, :, iSlc + 1]
-                        elif iSlc == maxslc - 1:
-                            volume_s[:, :, 0] = volume1p[:, :, iSlc - 1]
-                            volume_s[:, :, 1] = volume1p[:, :, iSlc]
-                            volume_s[:, :, 2] = volume1p[:, :, iSlc]
-                        else:
-                            volume_s[:, :, 0] = volume1p[:, :, iSlc - 1]
-                            volume_s[:, :, 1] = volume1p[:, :, iSlc]
-                            volume_s[:, :, 2] = volume1p[:, :, iSlc + 1]
-                        xtest = get_patches_2p5d(volume_s, blksz_2d, stride_2d)
+                    # get patches for target slice that will be predicted
+                    patches1 = get_patches(np.squeeze(volume1p[:, :, iSlc]), blksz_2d, stride_2d)
+                    # create arrays to store validation set
+                    xtest = np.zeros([patches1.shape[0], blksz_2d[0], blksz_2d[1], 1], dtype=np.float16)
+                    # save patches to test data set
+                    xtest[:, :, :, 0] = patches1[:, :, :]
+                    # delete some variables to save memory
+                    del patches1
 
                     ###############################################################################
                     # predict using the model

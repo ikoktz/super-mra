@@ -28,7 +28,6 @@ testmode = False  # test by training/predicting the first case only for one redu
 testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
-unet_dim = 2  # if unet_dim == 3, use Conv3D, etc
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
 raw_projection = 2  # projection direction for training; 0: no projection, 1, along 1st dimension/side projeciton, 2 along 2nd dimension/front projection
 loss_function = 'mean_squared_error'  # 'ssim_loss'
@@ -88,8 +87,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             unet_batchnorm_str = 'F' if not unet_batchnorm else 'T'
             unet_residual_str = 'F' if not unet_residual else 'T'
 
-            input_ch = 1 if not unet_dim == 2.5 else 3  # if input_ch==3, it's for 2.5D Unet with 3 input channels; input_ch == 1 for normal 2D and 3D Unet
-
             n_edge_after_proj = 0  # the edge images not used after raw_projection
             patches_per_set = patches_per_set_h + patches_per_set_l
 
@@ -121,8 +118,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             # load .tiff files from disk and count number of total slices
             ###############################################################################
             totalnumberofslices = 0  # count of slices for all data sets
-            slices_in_files = dict()  # to hold slice number for training from each file,
-                                      # used to generate unaugmented patches for 2.5D unet
+            slices_in_files = dict()  # to hold slice number for training from each file
             for m, icode in enumerate(srcfiles):
                 print('counting slices for ' + icode)
                 nslices = count_tiff_slices(os.path.join(dirsource, icode), subset_train_mode, subset_train_minslc,
@@ -139,31 +135,20 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             ###############################################################################
             rstr = "res" if unet_resnet_mode else ""
             p = patches_per_set, patches_per_set_h, patches_per_set_l if patches_from_volume else patches_per_slc, patches_per_slc_h, patches_per_slc_l
-            if unet_dim == 2:  # 2D UNet
-                modelsuffix = "_unet2d" + rstr + "-" + "[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
-                    unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
-                    unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
-                    batch_size_train)
-                modelprefix = "model_" + str(blksz_2d[0]) + "x" + str(blksz_2d[1]) + "x" + str(p[0]) + "(" + str(
-                    p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
-            elif unet_dim == 2.5:  # 2.5D UNet
-                modelsuffix = "_unet2p5d" + rstr + "-" + "[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
-                    unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
-                    unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
-                    batch_size_train)
-                modelprefix = "model_" + str(blksz_2d[0]) + "x" + str(blksz_2d[1]) + "x" + str(p[0]) + "(" + str(
-                    p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
+
+            # 2D UNet
+            modelsuffix = "_unet2d" + rstr + "-" + "[" + str(stride_2d[0]) + 'x' + str(
+                stride_2d[1]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
+                unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
+                unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
+                batch_size_train)
+            modelprefix = "model_" + str(blksz_2d[0]) + "x" + str(blksz_2d[1]) + "x" + str(p[0]) + "(" + str(
+                p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
 
             # check if we need to train more models and set the training_needed_flag,
             # as well as return the list for leave one out training mode
-            if unet_dim == 2:
-                outpath = 'train_' + 'unet2d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
-            elif unet_dim == 2.5:
-                outpath = 'train_' + 'unet2p5d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
+            outpath = 'train_' + 'unet2d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
+                batch_size_train) + foldersuffix
 
             script_path = os.path.split(os.path.abspath(__file__))[0]
             dirmodel = os.path.join(script_path, outpath)
@@ -178,18 +163,11 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 ###############################################################################
                 # create training data if not already created
                 ###############################################################################
-                if unet_dim == 2:
-                    suffix_npy = "_unet2d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
-                        p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
-                        stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
-                        patch_select_mode)
-                elif unet_dim == 2.5:
-                    suffix_npy = "_unet2p5d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
-                        p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
-                        stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
-                        patch_select_mode)
-                else:
-                    print("error in 2D Unet type .... quitting")
+                suffix_npy = "_unet2d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
+                    p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
+                    stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
+                    patch_select_mode)
+
                 if not os.path.exists(os.path.join(script_path, 'xtrain_master_noaug' + suffix_npy + '.npy')):
                     print("training data not found, so must create it")
                     ###############################################################################
@@ -197,13 +175,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     ###############################################################################
                     if patches_from_volume:  # select patches from a complete set of data, not slice by slice
                         totalpatches = len(srcfiles) * patches_per_set
-                    else:
+                    else: # select patches from each slice
                         totalpatches = totalnumberofslices * patches_per_slc
 
-                    if unet_dim == 2.5:  # input_ch == 3:
-                        xtrain_master_noaug = np.zeros([totalpatches, blksz_2d[0], blksz_2d[1], 3], dtype=np.float16)
-                    else:
-                        xtrain_master_noaug = np.zeros([totalpatches, blksz_2d[0], blksz_2d[1], 1], dtype=np.float16)
+                    xtrain_master_noaug = np.zeros([totalpatches, blksz_2d[0], blksz_2d[1], 1], dtype=np.float16)
                     ytrain_master_noaug = np.zeros([totalpatches, blksz_2d[0], blksz_2d[1], 1], dtype=np.float16)
 
                     # count the number of total slices to learn from during training phase
@@ -275,62 +250,27 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                                 else:
                                     print(',', iSlc, end="")
 
-                                if input_ch == 3:  # if 3 input channels (i.e. 2.5D Unet)
-                                    if iSlc == n_slices_exclude:
-                                        tmp = get_local_max_patches_from_image_unaugmented(
-                                            np.squeeze(volume3[:, :, iSlc]), np.squeeze(np.concatenate(
-                                                (volume1[:, :, iSlc:iSlc + 1], volume1[:, :, iSlc:iSlc + 2]), 2)),
-                                            blksz_2d, patches_per_slc_h, patches_per_slc_l, input_ch, patch_select_mode)
-                                        patches3 = np.squeeze(tmp[:, :, :, 0])  # patches3, volume3  are target
-                                        patches1 = np.squeeze(tmp[:, :, :, 1:])  # patches1, volume1 are source
-                                    elif iSlc == (volume1.shape[2] - n_slices_exclude - 1):
-                                        tmp = get_local_max_patches_from_image_unaugmented(
-                                            np.squeeze(volume3[:, :, iSlc]), np.squeeze(np.concatenate(
-                                                (volume1[:, :, iSlc - 1:iSlc + 1], volume1[:, :, iSlc:iSlc + 1]), 2)),
-                                            blksz_2d, patches_per_slc_h, patches_per_slc_l, input_ch, patch_select_mode)
-                                        patches3 = np.squeeze(tmp[:, :, :, 0])
-                                        patches1 = np.squeeze(tmp[:, :, :, 1:])
-                                    else:
-                                        tmp = get_local_max_patches_from_image_unaugmented(
-                                            np.squeeze(volume3[:, :, iSlc]),
-                                            np.squeeze(volume1[:, :, iSlc - 1:iSlc + 2]), blksz_2d, patches_per_slc_h,
-                                            patches_per_slc_l, input_ch, patch_select_mode)
-                                        patches3 = np.squeeze(tmp[:, :, :, 0])
-                                        patches1 = np.squeeze(tmp[:, :, :, 1:])
-                                else:  # 2D Unet
-                                    tmp = get_local_max_patches_from_image_unaugmented(np.squeeze(volume3[:, :, iSlc]),
-                                                                                       np.squeeze(volume1[:, :, iSlc]),
-                                                                                       blksz_2d, patches_per_slc_h,
-                                                                                       patches_per_slc_l, input_ch,
-                                                                                       patch_select_mode)
-                                    patches3 = np.squeeze(tmp[:, :, :, 0])
-                                    patches1 = np.squeeze(tmp[:, :, :, 1])
+                                # 2D Unet
+                                tmp = get_local_max_patches_from_image_unaugmented(np.squeeze(volume3[:, :, iSlc]),
+                                                                                   np.squeeze(volume1[:, :, iSlc]),
+                                                                                   blksz_2d, patches_per_slc_h,
+                                                                                   patches_per_slc_l,
+                                                                                   patch_select_mode)
+                                patches3 = np.squeeze(tmp[:, :, :, 0])
+                                patches1 = np.squeeze(tmp[:, :, :, 1])
 
-                                if input_ch == 3:  # if 3 input channels (i.e. 2.5D Unet)
-                                    xtrain_master_noaug[
+                                xtrain_master_noaug[
+                                slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
+                                0] = patches1[:, :, :]  # xtrain, patches1, volume1 are source
+                                if not unet_resnet_mode:
+                                    ytrain_master_noaug[
                                     slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                    :] = patches1  # xtrain, patches1, volume1 are source
-                                    if not unet_resnet_mode:
-                                        ytrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches3  # ytrain, patches3, volume3 are target
-                                    else:
-                                        ytrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches3 - patches1  # ytrain, patches3-patches1, volume3 are target (residual unet mode)
-                                else:  # 2D Unet
-                                    xtrain_master_noaug[
+                                    0] = patches3[:, :, :]  # ytrain, patches3, volume3 are target
+                                else:
+                                    ytrain_master_noaug[
                                     slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                    0] = patches1[:, :, :]  # xtrain, patches1, volume1 are source
-                                    if not unet_resnet_mode:
-                                        ytrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches3[:, :, :]  # ytrain, patches3, volume3 are target
-                                    else:
-                                        ytrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches3[:, :, :] - patches1[:, :,
-                                                                 :]  # ytrain, patches3-patches1, volume3 are target (residual unet mode)
+                                    0] = patches3[:, :, :] - patches1[:, :,
+                                                             :]  # ytrain, patches3-patches1, volume3 are target (residual unet mode)
 
                                 slice_count = slice_count + 1
 
@@ -364,14 +304,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 if data_augm_factor > 1:
                     print("augmenting data by factor of", data_augm_factor, "...")
                     iSlc = 0
-                    if input_ch == 3:
-                        xtrain_master = augment_patches_2p5d(xtrain_master_noaug, data_augm_factor, iSlc, 180,
-                                                             (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
-                    else:
-                        xtrain_master = augment_patches(xtrain_master_noaug, data_augm_factor, iSlc, 180,
+                    xtrain_master = augment_patches(xtrain_master_noaug, data_augm_factor, iSlc, 180,
                                                         (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
                     ytrain_master = augment_patches(ytrain_master_noaug, data_augm_factor, iSlc, 180,
-                                                    (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
+                                                        (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
                     print("augmenting data by factor of", data_augm_factor, "... done")
                 else:
                     # don't data augment
@@ -420,7 +356,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                         del model
                     except:
                         pass
-                    model = unet2d((blksz_2d[0], blksz_2d[1], input_ch), out_ch=1, start_ch=unet_start_ch,
+                    model = unet2d((blksz_2d[0], blksz_2d[1], 1), out_ch=1, start_ch=unet_start_ch,
                                    depth=unet_depth, inc_rate=unet_inc_rate, activation="relu", dropout=unet_dropout,
                                    batchnorm=unet_batchnorm, maxpool=True, upconv=False, residual=unet_residual)
                     print(model.summary())

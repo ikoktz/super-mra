@@ -347,7 +347,7 @@ def undo_reproject(volume, raw_projection):
 from skimage.feature import peak_local_max
 
 
-def get_local_max_patches_from_image_unaugmented(img_target, img_source, blksz, n_highsig=12, n_lowsig=0, input_ch=1,
+def get_local_max_patches_from_image_unaugmented(img_target, img_source, blksz, n_highsig=12, n_lowsig=0,
                                                  dif_mode=0):
     """
     # helper function that obtains patches (based on local maxima) from a source and target image; size is [nrows x ncols x 1] or [nrows x ncols x n]
@@ -356,7 +356,6 @@ def get_local_max_patches_from_image_unaugmented(img_target, img_source, blksz, 
     :param blksz: patch size in rows x columns (integer or tuple)
     :param n_highsig: number of high signal intensity patches
     :param n_lowsig: number of low signal intensity patches
-    :param input_ch: input of input channels for the neural network
     :param dif_mode: mode for selecting the 'high' and 'low' signal patches; 0: normal mode based purely on signal intensity; 1: based on the difference of the (source and target signals) * sqrt(target signal intensity)
     :return: a dtype='float16' numpy matrix of size [n_highsig + n_lowsig, blksz, blksz, srcslice+tgtslice]
     """

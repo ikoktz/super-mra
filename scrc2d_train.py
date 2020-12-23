@@ -84,8 +84,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 patches_per_slc_l = 80  # low signal intensity/background blocks/patches per slice used for training
                 patches_per_slc = patches_per_slc_h + patches_per_slc_l
 
-                input_ch = 1  # if input_ch==3, it's for 2.5D Unet with 3 input channels; input_ch == 1 for  2D and 3D Unet
-
                 resnet_dropout = 0
                 resnet_filters = 64
                 n_edge_after_proj = 0  # the edge images not used after raw_projection
@@ -120,7 +118,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 # load .tiff files from disk and count number of total slices 
                 ###############################################################################
                 totalnumberofslices = 0  # count of slices for all data sets
-                slices_in_files = dict()  # to hold slice number for training from each file, used to generate unaugmented patches for 2.5D unet
+                slices_in_files = dict()  # to hold slice number for training from each file
                 for m, icode in enumerate(srcfiles):
                     print('counting slices for ' + icode)
                     nslices = count_tiff_slices(os.path.join(dirsource, icode), subset_train_mode, subset_train_minslc,
@@ -236,51 +234,18 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                                     else:
                                         print(',', iSlc, end="")
 
-                                    if input_ch == 3:  # if 3 input channels (i.e. 2.5D Unet)
-                                        if iSlc == n_slices_exclude:
-                                            tmp = get_local_max_patches_from_image_unaugmented(
-                                                np.squeeze(volume3[:, :, iSlc]), np.squeeze(np.concatenate(
-                                                    (volume1[:, :, iSlc:iSlc + 1], volume1[:, :, iSlc:iSlc + 2]), 2)),
-                                                blksz_2d, patches_per_slc_h, patches_per_slc_l, input_ch,
-                                                patch_select_mode)
-                                            patches3 = np.squeeze(tmp[:, :, :, 0])  # patches3, volume3  are target
-                                            patches1 = np.squeeze(tmp[:, :, :, 1:])  # patches1, volume1 are source
-                                        elif iSlc == (volume1.shape[2] - n_slices_exclude - 1):
-                                            tmp = get_local_max_patches_from_image_unaugmented(
-                                                np.squeeze(volume3[:, :, iSlc]), np.squeeze(np.concatenate(
-                                                    (volume1[:, :, iSlc - 1:iSlc + 1], volume1[:, :, iSlc:iSlc + 1]),
-                                                    2)), blksz_2d, patches_per_slc_h, patches_per_slc_l, input_ch,
-                                                patch_select_mode)
-                                            patches3 = np.squeeze(tmp[:, :, :, 0])
-                                            patches1 = np.squeeze(tmp[:, :, :, 1:])
-                                        else:
-                                            tmp = get_local_max_patches_from_image_unaugmented(
-                                                np.squeeze(volume3[:, :, iSlc]),
-                                                np.squeeze(volume1[:, :, iSlc - 1:iSlc + 2]), blksz_2d,
-                                                patches_per_slc_h, patches_per_slc_l, input_ch, patch_select_mode)
-                                            patches3 = np.squeeze(tmp[:, :, :, 0])
-                                            patches1 = np.squeeze(tmp[:, :, :, 1:])
-                                    else:  # 2D Unet
-                                        tmp = get_local_max_patches_from_image_unaugmented(
-                                            np.squeeze(volume3[:, :, iSlc]), np.squeeze(volume1[:, :, iSlc]), blksz_2d,
-                                            patches_per_slc_h, patches_per_slc_l, input_ch, patch_select_mode)
-                                        patches3 = np.squeeze(tmp[:, :, :, 0])
-                                        patches1 = np.squeeze(tmp[:, :, :, 1])
+                                    tmp = get_local_max_patches_from_image_unaugmented(
+                                        np.squeeze(volume3[:, :, iSlc]), np.squeeze(volume1[:, :, iSlc]), blksz_2d,
+                                        patches_per_slc_h, patches_per_slc_l, patch_select_mode)
+                                    patches3 = np.squeeze(tmp[:, :, :, 0])
+                                    patches1 = np.squeeze(tmp[:, :, :, 1])
 
-                                    if input_ch == 3:  # if 3 input channels (i.e. 2.5D Unet)
-                                        xtrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        :] = patches1  # xtrain, patches1, volume1 are source
-                                        ytrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches3  # ytrain, patches3, volume3 are target
-                                    else:  # 2D Unet
-                                        xtrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches1[:, :, :]
-                                        ytrain_master_noaug[
-                                        slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
-                                        0] = patches3[:, :, :]
+                                    xtrain_master_noaug[
+                                    slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
+                                    0] = patches1[:, :, :]
+                                    ytrain_master_noaug[
+                                    slice_count * patches_per_slc:(slice_count + 1) * patches_per_slc, :, :,
+                                    0] = patches3[:, :, :]
 
                                     slice_count = slice_count + 1
 
@@ -319,12 +284,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     if data_augm_factor > 1:
                         print("augmenting data by factor of", data_augm_factor, "...")
                         iSlc = 0
-                        if input_ch == 3:
-                            xtrain_master = augment_patches_2p5d(xtrain_master_noaug, data_augm_factor, iSlc, 180,
-                                                                 (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
-                        else:
-                            xtrain_master = augment_patches(xtrain_master_noaug, data_augm_factor, iSlc, 180,
-                                                            (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
+                        xtrain_master = augment_patches(xtrain_master_noaug, data_augm_factor, iSlc, 180,
+                                                        (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
                         ytrain_master = augment_patches(ytrain_master_noaug, data_augm_factor, iSlc, 180,
                                                         (blksz_2d[0] // 4, blksz_2d[1] // 4), 0.4)
                         print("augmenting data by factor of", data_augm_factor, "... done")
