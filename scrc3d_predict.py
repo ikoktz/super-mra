@@ -91,8 +91,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
                 batch_size_recon = 25
 
-                dnn_dim = 3  # if dnn_dim == 3, use Conv3D, etc
-                input_ch = 1 if not dnn_dim == 2.5 else 3  # if input_ch==3, it's for 2.5D Unet with 3 input channels; input_ch == 1 for normal 2D and 3D Unet
                 blks_rand_shift_mode = False  # 3D residual unet random block shift mode
 
                 if loss_function == "mean_squared_error":
