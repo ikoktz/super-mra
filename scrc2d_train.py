@@ -5,30 +5,35 @@ from models import *
 from utils import *
 
 ###############################################################################
-# key simulation parameters
+# key parameters (begin)
 ###############################################################################
 combomatrix = [[32, 32, 16, 16, 64, 1, 9, 10000, 10000]]
-# for each row, in form: [trainblkszx, trainblkszy, stridex, # stridey, nfilters, augmentationfactor,
-                        # patch selection mode, # patches_per_set_h, patches_per_set_l]
-
+''' in form [blksz_2d[0],           patch size in row direction (pixel units)
+             blksz_2d[1],           patch size in column direction (pixel units)
+             stride_2d[0],          stride of patch selection in row direction (pixel units)
+             stride_2d[1],          stride of patch selection in column direction (pixel units)
+             resnet_filters,        number of convolution filters
+             data_augm_factor,      data augmentation factor             
+             patch_select_mode,     patch selection mode
+             patches_per_set_h,     number of high signal/edge training patches per volume
+             patches_per_set_l]     number of low signal training patches per volume
+'''
 # test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
 testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 2  # projection direction for training; 0: no projection
-                                                        # 1, along 1st dimension/side projection
-                                                        # 2 along 2nd dimension/front projection
+raw_projection = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'ssim_loss'
 sleep_when_done = False  # sleep computer when finished
-
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
-
 optimizers = ['adam']  # ['adam', 'sgd']
 leave_one_out_train = True  # performs training using a leave one out scheme
-
 resnet_cnn_depth = [7]
+###############################################################################
+# key parameters (begin)
+###############################################################################
 
 for iRed in reduction_list:  # loop over resolution reduction factors
     reduction = str(iRed) + 'fold'

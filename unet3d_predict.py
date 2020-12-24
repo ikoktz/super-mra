@@ -3,42 +3,57 @@ from keras.models import model_from_json
 
 from utils import *
 
-##############################################################################
-# IMPORTANT RECONSTRUCTION OPTIONS (begin)
 ###############################################################################
-combomatrix = [[8, 8, 8, 4, 4, 4, 9, 10000, 10000, 8,
-                False]]  # blkszx, blkszy, blkszz, stridex, stridey, stridez, patchselectionmode, ntrainblockshigh,
-                         # ntrainblockslow, unetstartchannels, resnet mode
+# key parameters (begin)
+###############################################################################
+combomatrix = [[8, 8, 8, 4, 4, 4, 9, 10000, 10000, 8, False]]
+''' in form [blksz_3d[0],           block size in row direction (pixel units)
+             blksz_3d[1],           block size in column direction (pixel units)
+             blksz_3d[2],           block size in slice direction (pixel units)
+             stride_3d[0],          stride of block reconstruction in row direction (pixel units)
+             stride_3d[1],          stride of block reconstruction in column direction (pixel units)
+             stride_3d[2],          stride of block reconstruction in slice direction (pixel units)
+             patch_select_mode,     block selection mode
+             patches_per_set_h,     number of high signal/edge training blocks per volume
+             patches_per_set_l,     number of low signal training blocks per volume
+             unet_start_ch,         number of starting channels for the U-Net
+             unet_resnet_mode]      residual learning mode for the U-Net to predict the difference; (default == False)
+'''
 
+# test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
+
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
+raw_projection = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'mean_squared_error' 'ssim_loss'
 sleep_when_done = False
-
 leave_one_out_train = True  # performs training using a leave one out scheme
 optimizers = ['adam']  # ['adam', 'sgd']
-
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
-
-unet_dim = 3  # if unet_dim == 3, use Conv3D, etc
-unet_start_ch = 8
-unet_inc_rate = 2
-unet_dropout = 0.5
-unet_batchnorm = False
-unet_residual = False
-unet_batchnorm_str = 'F' if not unet_batchnorm else 'T'
-unet_residual_str = 'F' if not unet_residual else 'T'
-
 ###############################################################################
-# IMPORTANT RECONSTRUCTION OPTIONS (end)
+# key parameters (end)
 ###############################################################################
+
 for iRed in reduction_list:  # loop over resolution reduction factors
     reduction = str(iRed) + 'fold'
 
     for b_index in combomatrix:  # loop over reconstructions to perform
 
         batch_size_train = 20 if b_index[0] == 32 else 32 // b_index[0] * 20
-        unet_depth = 4 if b_index[0] ** 0.25 >= 2 else 3
+
+        # U-net related inputs/parameters
+        try:
+            unet_start_ch = b_index[9]
+        except:
+            unet_start_ch = 16  # number of starting channels
+        unet_depth = 4 if b_index[0] ** 0.25 >= 2 else 3  # depth (i.e. # of max pooling steps)
+        unet_inc_rate = 2  # channel increase rate
+        unet_dropout = 0.5  # dropout rate
+        unet_batchnorm = False  # batch normalization mode
+        unet_residual = False  # residual connections mode
+        unet_batchnorm_str = 'F' if not unet_batchnorm else 'T'
+        unet_residual_str = 'F' if not unet_residual else 'T'
+
         print(b_index)
         try:
             # Unet residual mode; Unet tries to predict the difference image/volume that will be added back to the
@@ -82,14 +97,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             batch_size_recon = 25 if b_index[0] == 32 else 32 // b_index[0] * 25
 
             # input channels for UNets
-            if unet_dim == 2:
-                input_ch = 1  # 1 slice for 2D UNet
-            else:  # 3 slices for 2.5D UNet and b_index[2] slices for 3D UNet
-                input_ch = b_index[
-                    2] if not unet_dim == 2.5 else 3  # if input_ch==3, it's for 2.5D Unet with 3 input channels
-                                                      # input_ch == 1 for normal 2D and 3D Unet
+            input_ch = b_index[2]
 
-            raw_projection = 0  # 0: no projection, 1, along 1st dimnetion, 2 along 2nd dimension
             blks_rand_shift_mode = False  # 3D random block shift mode
 
             ###############################################################################
@@ -107,16 +116,14 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
             rstr = "res" if unet_resnet_mode else ""
             p = patches_per_set, patches_per_set_h, patches_per_set_l if patches_from_volume else patches_per_slc, patches_per_slc_h, patches_per_slc_l
-            if unet_dim == 3:
-                modelsuffix = "_unet3d" + rstr + "-" + "[" + str(stride_3d[0]) + 'x' + str(stride_3d[1]) + 'x' + str(
-                    stride_3d[2]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
-                    unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
-                    unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
-                    batch_size_train)
-                modelprefix = "model_" + str(blksz_3d[0]) + "x" + str(blksz_3d[1]) + "x" + str(blksz_3d[2]) + "x" + str(
-                    p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
-            else:
-                quit
+            modelsuffix = "_unet3d" + rstr + "-" + "[" + str(stride_3d[0]) + 'x' + str(stride_3d[1]) + 'x' + str(
+                stride_3d[2]) + "]-psm" + str(patch_select_mode) + "-" + str(unet_start_ch) + "-" + str(
+                unet_depth) + "-" + str(unet_inc_rate) + "-" + str(
+                unet_dropout) + "-" + unet_batchnorm_str + "-" + unet_residual_str + '-batch' + str(
+                batch_size_train)
+            modelprefix = "model_" + str(blksz_3d[0]) + "x" + str(blksz_3d[1]) + "x" + str(blksz_3d[2]) + "x" + str(
+                p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")x" + str(data_augm_factor)
+
             if blks_rand_shift_mode:  # if randomly shifting blocks during training process
                 modelprefix += '_rsb'
 
@@ -125,15 +132,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             ###############################################################################
             script_path = os.path.split(os.path.abspath(__file__))[0]
             # construct folder name where models are
-            if unet_dim == 2:
-                outpath = 'train_' + 'unet2d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
-            elif unet_dim == 2.5:
-                outpath = 'train_' + 'unet2p5d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
-            elif unet_dim == 3:
-                outpath = 'train_' + 'unet3d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
-                    batch_size_train) + foldersuffix
+            outpath = 'train_' + 'unet3d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
+                batch_size_train) + foldersuffix
 
             script_path = os.path.split(os.path.abspath(__file__))[0]
             dirmodel = os.path.join(script_path, outpath)
@@ -240,17 +240,12 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 else:
                     minslc = 0
                     maxslc = volume1.shape[2]
-                incslc = 1  # reconstruct every slice
-
-                # loop over slices to reconstruct
-                if unet_dim == 3:
-                    input_ch = blksz_3d[2]
 
                 # 3D neural network
                 # 3D reconstruction
                 debuglogic = False  # debugging option
-                if unet_dim == 3:
-                    input_ch = blksz_3d[2]
+                input_ch = blksz_3d[2]
+
                 zstride = input_ch // 2
                 # create output stack (with augmented z dimension to align with stride size)
 

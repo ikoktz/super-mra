@@ -4,29 +4,35 @@ from keras.models import model_from_json
 from utils import *
 
 ###############################################################################
-# IMPORTANT RECONSTRUCTION OPTIONS (begin)
+# key parameters (begin)
 ###############################################################################
-combomatrix = [[32, 32, 16, 16, 64, 1, 9, 10000,
-                10000]]  # for each row, in form: [trainblkszx, trainblkszy, stridex, stridey, nfilters,
-                                                # augmentationfactor, patch selection mode, patches_per_set_h, patches_per_set_l]
-
+combomatrix = [[32, 32, 16, 16, 64, 1, 9, 10000, 10000]]
+''' in form [blksz_2d[0],           patch size in row direction (pixel units)
+             blksz_2d[1],           patch size in column direction (pixel units)
+             stride_2d[0],          training & reconstruction stride in row direction (pixel units)
+             stride_2d[1],          training & reconstruction stride in column direction (pixel units)
+             resnet_filters,        number of convolution filters
+             data_augm_factor,      data augmentation factor             
+             patch_select_mode,     patch selection mode
+             patches_per_set_h,     number of high signal/edge training patches per volume
+             patches_per_set_l]     number of low signal training patches per volume
+'''
+# test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
+
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 2  # projection direction for training; 0: no projection, 1, along 1st dimension/side projection, 2 along 2nd dimension/front projection
+raw_projection = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'mean_squared_error' 'ssim_loss'
 sleep_when_done = False  # sleep computer when finished
-
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
-
 optimizers = ['adam']  # ['adam', 'sgd']
 leave_one_out_train = True  # performs training using a leave one out scheme
-
 resnet_mode = True  # serial convolution + residual connection mode
 resnet_cnn_depth = [7]
+###############################################################################
+# key parameters (end)
+###############################################################################
 
-###############################################################################
-# IMPORTANT RECONSTRUCTION OPTIONS (end)
-###############################################################################
 for iRed in reduction_list:  # loop over resolution reduction factors
     reduction = str(iRed) + 'fold'
     for b_index in combomatrix:  # loop over reconstructions to perform
@@ -210,10 +216,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     else:
                         minslc = 0
                         maxslc = volume1.shape[2]
-                    incslc = 1  # reconstruct every slice
 
                     # loop over slices to reconstruct
-
                     # 2D or 2.5D deep neural network
                     # create ai volume
                     volume_recon_ai = np.zeros([int(stride_2d[0] * np.ceil(volume1.shape[0] / stride_2d[0])),
@@ -225,7 +229,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     volume1p = np.pad(volume1, ((0, npadvoxs[0]), (0, npadvoxs[1]), (0, npadvoxs[2])), 'edge')
                     volume_s = np.zeros([volume1p.shape[0], volume1p.shape[1], 1], dtype=np.float16)
                     print('volume_s.shape', volume_s.shape)
-                    for iSlc in range(minslc, maxslc, incslc):
+                    for iSlc in range(minslc, maxslc):
 
                         print('reconstructing slice', iSlc + 1, 'of', maxslc)
                         print('reconstructing slice', iSlc + 1, 'of', maxslc)

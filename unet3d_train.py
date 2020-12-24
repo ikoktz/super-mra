@@ -6,11 +6,21 @@ from models import *
 from utils import *
 
 ###############################################################################
-# key simulation parameters
+# key simulation parameters (begin)
 ###############################################################################
-combomatrix = [[8, 8, 8, 4, 4, 4, 9, 10000, 10000, 8,
-                False]]  # blkszx, blkszy, blkszz, stridex, stridey, stridez, patchselectionmode, ntrainblockshigh,
-# ntrainblockslow, unetstartchannels, resnet mode
+combomatrix = [[8, 8, 8, 4, 4, 4, 9, 10000, 10000, 8, False]]
+''' in form [blksz_3d[0],           block size in row direction (pixel units)
+             blksz_3d[1],           block size in column direction (pixel units)
+             blksz_3d[2],           block size in slice direction (pixel units)
+             stride_3d[0],          stride of block selection in row direction (pixel units)
+             stride_3d[1],          stride of block selection in column direction (pixel units)
+             stride_3d[2],          stride of block selection in slice direction (pixel units)
+             patch_select_mode,     block selection mode
+             patches_per_set_h,     number of high signal/edge training blocks per volume
+             patches_per_set_l,     number of low signal training blocks per volume
+             unet_start_ch,         number of starting channels for the U-Net
+             unet_resnet_mode]      residual learning mode for the U-Net to predict the difference; (default == False)
+'''
 
 # test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
@@ -18,20 +28,17 @@ testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 0  # projection direction for training; 0: no projection,
-# 1, along 1st dimension/side projection,
-# 2, along 2nd dimension/front projection
+raw_projection = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'ssim_loss'
 sleep_when_done = False if testmode else True  # sleep computer when finished
-
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
-
 data_augm_factor = 1  # 1, 2, 4, or 8 are options for residual net
-data_augm_factor = set_augmentation_factor_for_3D_net(
-    data_augm_factor)  # set augmentation factor to 1,2,4 or 8 based on initial value
-
+data_augm_factor = set_augmentation_factor_for_3D_net(data_augm_factor)  # set augmentation factor to 1,2,4 or 8
 optimizers = ['adam']  # ['adam', 'sgd']
 leave_one_out_train = True  # performs training using a leave one out scheme
+###############################################################################
+# key simulation parameters (end)
+###############################################################################
 
 for iRed in reduction_list:  # loop over resolution reduction factors
     reduction = str(iRed) + 'fold'

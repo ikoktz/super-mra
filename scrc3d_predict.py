@@ -4,23 +4,35 @@ from keras.models import model_from_json
 from utils import *
 
 ###############################################################################
-# IMPORTANT RECONSTRUCTION OPTIONS (begin)
+# key parameters (begin)
 ###############################################################################
-combomatrix = [[32, 32, 32, 16, 16, 16, 64, 1, 9, False, 500, 500,
-                'mean_squared_error']]  # in form [blkszx, blkszy, blkszz, stridex, stridey, stridez, nfilters,
-                                        # augmentationfactor, patchselectionmode, residual1Dfiltermode,
-                                        # high signal blocks, # low signal blocks, # loss function]
-
+combomatrix = [[32, 32, 32, 16, 16, 16, 64, 1, 9, 500, 500, False, 'mean_squared_error']]
+''' in form [blksz_3d[0],           block size in row direction (pixel units)
+             blksz_3d[1],           block size in column direction (pixel units)
+             blksz_3d[2],           block size in slice direction (pixel units)
+             stride_3d[0],          stride of block selection in row direction (pixel units)
+             stride_3d[1],          stride of block selection in column direction (pixel units)
+             stride_3d[2],          stride of block selection in slice direction (pixel units)
+             resnet_filters,        number of convolution filters
+             data_augm_factor,      data augmentation factor
+             patch_select_mode,     block selection mode
+             patches_per_set_h,     number of high signal/edge training blocks per volume
+             patches_per_set_l,     number of low signal training blocks per volume
+             filter_mode_1D,        1d filter mode in x & y directions (default = False)
+             loss_function]         loss function used for training 
+'''
+# test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
-reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
 
+reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
+raw_projection = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 leave_one_out_train = True  # performs training using a leave one out scheme
 resnet_mode = True  # serial convolutions + residual connection mode
 resnet_cnn_depth = [7]  # number of convolutional blocks
 optimizers = ['adam']  # ['adam', 'sgd']
 sleep_when_done = False
 ###############################################################################
-# IMPORTANT RECONSTRUCTION OPTIONS (end)
+# key parameters (end)
 ###############################################################################
 
 for iRed in reduction_list:  # loop over resolution reduction factors
@@ -34,15 +46,14 @@ for iRed in reduction_list:  # loop over resolution reduction factors
         except:
             loss_function = 'mean_squared_error'
         try:
-            nblks = b_index[10] + b_index[11], b_index[10], b_index[
-                11]  # number of total training blocks, high sig blocks, random blocks used for training
+            nblks = b_index[9] + b_index[10], b_index[9], b_index[10] # number of total training blocks (high + low)
         except:
-            nblks = 1000, 500, 500  # number of total training blocks, high sig blocks, random blocks used for training
+            nblks = 1000, 500, 500
         batch_size_train = 20 * nblks[1] // 500
         try:
-            residual1dfiltermode = b_index[9]
+            filter_mode_1d = b_index[11]
         except:
-            residual1dfiltermode = False
+            filter_mode_1d = False
         try:  # reconstruction block size
             blksz_3d = b_index[0], b_index[1], b_index[2]
         except:
@@ -60,7 +71,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
         try:
             data_augm_factor = b_index[7]
         except:
-            data_augm_factor = 4
+            data_augm_factor = 1
         try:
             patch_select_mode = b_index[8]
         except:
@@ -82,7 +93,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
                 dnn_dim = 3  # if dnn_dim == 3, use Conv3D, etc
                 input_ch = 1 if not dnn_dim == 2.5 else 3  # if input_ch==3, it's for 2.5D Unet with 3 input channels; input_ch == 1 for normal 2D and 3D Unet
-                raw_projection = 0  # 0: no projection, 1, along 1st dimension, 2 along 2nd dimension
                 blks_rand_shift_mode = False  # 3D residual unet random block shift mode
 
                 if loss_function == "mean_squared_error":
@@ -96,7 +106,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 # load model architecture and weights from .json and .hdf5 files on disk
                 ###############################################################################
                 # load model architecture from disk
-                filterstring = "1Dfilter" if residual1dfiltermode else ""
+                filterstring = "1Dfilter" if filter_mode_1d else ""
                 outpath = 'train_scrc3d' + filterstring + '_' + optim + '_' + str(
                     curr_depth) + '_' + reduction + '_' + str(
                     ResiNet_filters) + 'filters_batch' + str(batch_size_train) + foldersuffix
@@ -205,7 +215,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     else:
                         minslc = 0
                         maxslc = volume1.shape[2]
-                    incslc = 1  # reconstruct every slice
 
                     # loop over slices to reconstruct
                     # 3D neural network

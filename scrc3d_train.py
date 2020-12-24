@@ -6,12 +6,23 @@ from models import *
 from utils import *
 
 ###############################################################################
-# key simulation parameters
+# key parameters (begin)
 ###############################################################################
-combomatrix = [[32, 32, 32, 16, 16, 16, 64, 1, 9, False, 500, 500,
-                'mean_squared_error']]  # in form [blkszx, blkszy, blkszz, stridex, stridey, stridez, nfilters,
-# augmentationfactor, patchselectionmode, residual1Dfiltermode,
-# high signal blocks, # low signal blocks, # loss function]
+combomatrix = [[32, 32, 32, 16, 16, 16, 64, 1, 9, 500, 500, False, 'mean_squared_error']]
+''' in form [blksz_3d[0],           block size in row direction (pixel units)
+             blksz_3d[1],           block size in column direction (pixel units)
+             blksz_3d[2],           block size in slice direction (pixel units)
+             stride_3d[0],          stride of block selection in row direction (pixel units)
+             stride_3d[1],          stride of block selection in column direction (pixel units)
+             stride_3d[2],          stride of block selection in slice direction (pixel units)
+             resnet_filters,        number of convolution filters
+             data_augm_factor,      data augmentation factor
+             patch_select_mode,     block selection mode
+             patches_per_set_h,     number of high signal/edge training blocks per volume
+             patches_per_set_l,     number of low signal training blocks per volume
+             filter_mode_1D,        1d filter mode in x & y directions (default = False)
+             loss_function]         loss function used for training 
+'''
 
 # test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
@@ -19,14 +30,15 @@ testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 0  # 0: no projection, 1, along 1st dimnetion, 2 along 2nd dimension
+raw_projection = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 sleep_when_done = False  # sleep computer when finished
-
 resnet_mode = True  # serial convolutions + residual connection mode
 resnet_cnn_depth = [7]  # number of convolutional blocks
-
 optimizers = ['adam']  # ['adam', 'sgd']
 leave_one_out_train = True  # performs training using a leave one out scheme
+###############################################################################
+# key parameters (end)
+###############################################################################
 
 for iRed in reduction_list:  # loop over resolution reduction factors
     reduction = str(iRed) + 'fold'
@@ -38,17 +50,16 @@ for iRed in reduction_list:  # loop over resolution reduction factors
         except:
             loss_function = 'mean_squared_error'
         try:
-            patches_per_set_h = b_index[10]  # high signal intensity/arterial blocks/patches per slice used for training
-            patches_per_set_l = b_index[
-                11]  # low signal intensity/background blocks/patches per slice used for training
+            patches_per_set_h = b_index[9]
+            patches_per_set_l = b_index[10]
         except:
             patches_per_set_h = 500
             patches_per_set_l = 500
         patches_per_set = patches_per_set_h + patches_per_set_l
         try:
-            residual1dfiltermode = b_index[9]
+            filter_mode_1d = b_index[11]
         except:
-            residual1dfiltermode = False
+            filter_mode_1d = False
         try:
             blksz_3d = b_index[0], b_index[1], b_index[2]  # patch/block sizes that are used to train the model
         except:
@@ -118,7 +129,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 ###############################################################################
                 # check if we've already trained the model; if no, train it, if yes, load it from disk
                 ###############################################################################    
-                filterstring = "1Dfilter" if residual1dfiltermode else ""
+                filterstring = "1Dfilter" if filter_mode_1d else ""
                 modelsuffix = "_scrc3d" + filterstring + "-" + "[" + str(stride_3d[0]) + 'x' + str(
                     stride_3d[1]) + 'x' + str(stride_3d[2]) + ']-psm' + str(patch_select_mode) + '-batch' + str(
                     batch_size_train)
@@ -130,7 +141,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
                 # check if we need to train more models and set the training_needed_flag, as well as return the list
                 # for leave one out training mode
-                filterstring = "1Dfilter" if residual1dfiltermode else ""
+                filterstring = "1Dfilter" if filter_mode_1d else ""
                 outpath = 'train_' + 'scrc3d' + filterstring + '_' + optim + '_' + str(
                     curr_depth) + '_' + reduction + '_' + str(resnet_filters) + 'filters_batch' + str(
                     batch_size_train) + foldersuffix
@@ -322,7 +333,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                             del model
                         except:
                             pass
-                        if residual1dfiltermode:  # 1x1x3 filter size
+                        if filter_mode_1d:  # 1x1x3 filter size
                             model = scrc3dflexfiltersize((blksz_3d[0], blksz_3d[1], blksz_3d[2], 1),
                                                          filters=resnet_filters, filtersize=(1, 1, 3), filter_out=1,
                                                          depth=curr_depth, activation='relu', dropout=resnet_dropout)

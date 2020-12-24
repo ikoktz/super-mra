@@ -4,11 +4,19 @@ from keras.optimizers import SGD, Adam
 from utils import *
 
 ###############################################################################
-# key simulation parameters
+# key parameters (begin)
 ###############################################################################
-combomatrix = [[32, 32, 16, 16, 9, 10000, 10000, 8,
-                False]]  # for each row, in form: [trainblkszx, trainblkszy, stridex, stridey, patch selection mode,
-                                                 # patches_per_set_h, patches_per_set_l,unet_channels, resnet mode]
+combomatrix = [[32, 32, 16, 16, 9, 10000, 10000, 8, False]]
+''' in form [blksz_2d[0],           patch size in row direction (pixel units)
+             blksz_2d[1],           patch size in column direction (pixel units)
+             stride_2d[0],          stride of patch selection in row direction (pixel units)
+             stride_2d[1],          stride of patch selection in column direction (pixel units)
+             patch_select_mode,     patch selection mode
+             patches_per_set_h,     number of high signal/edge training patches per volume
+             patches_per_set_l,     number of low signal training patches per volume
+             unet_start_ch,         number of starting channels for the U-Net
+             unet_resnet_mode]      residual learning mode for the U-Net to predict the difference; (default == False)
+'''
 
 # test mode options
 testmode = False  # test by training/predicting the first case only for one reduction factor
@@ -16,16 +24,16 @@ testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 2  # projection direction for training; 0: no projection, 1, along 1st dimension/side projeciton, 2 along 2nd dimension/front projection
+raw_projection = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'ssim_loss'
 sleep_when_done = False  # sleep computer when finished
-
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
-
 data_augm_factor = 1  # data augmentation factor; arbitrary values allowed for 2D
-
 optimizers = ['adam']  # ['adam', 'sgd']
 leave_one_out_train = True  # performs training using a leave one out scheme
+###############################################################################
+# key parameters (end)
+###############################################################################
 
 for iRed in reduction_list:  # loop over resolution reduction factors
     reduction = str(iRed) + 'fold'
@@ -54,8 +62,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             nepochs = 2 if testmode_epochs else 200  # number of epochs to train for
             batch_size_train = 400  # training batch size
 
-            blksz_2d = b_index[0], b_index[1]  # block/patch size in pixels
-            stride_2d = b_index[2], b_index[3]  # reconstruction block/patch size (i.e. stride)
+            blksz_2d = b_index[0], b_index[1]   # block/patch size in pixels
+            stride_2d = b_index[2], b_index[3]  # stride for obtaining training blocks
 
             patches_per_slc_h = 60  # high signal intensity/arterial blocks/patches per slice used for training
             patches_per_slc_l = 80  # low signal intensity/background blocks/patches per slice used for training
