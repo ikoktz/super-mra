@@ -17,7 +17,7 @@ combomatrix = [[32, 32, 32, 16, 16, 16, 64, 1, 9, 500, 500, False, 'mean_squared
              stride_3d[2],          stride of block selection in slice direction (pixel units)
              resnet_filters,        number of convolution filters
              data_augm_factor,      data augmentation factor
-             patch_select_mode,     block selection mode
+             patch_select_mode,     block selection mode (see compute_metric_volume_3d() function in utils.py)
              patches_per_set_h,     number of high signal/edge training blocks per volume
              patches_per_set_l,     number of low signal training blocks per volume
              filter_mode_1D,        1d filter mode in x & y directions (default = False)

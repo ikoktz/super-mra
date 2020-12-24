@@ -15,7 +15,7 @@ combomatrix = [[8, 8, 8, 4, 4, 4, 9, 10000, 10000, 8, False]]
              stride_3d[0],          stride of block selection in row direction (pixel units)
              stride_3d[1],          stride of block selection in column direction (pixel units)
              stride_3d[2],          stride of block selection in slice direction (pixel units)
-             patch_select_mode,     block selection mode
+             patch_select_mode,     block selection mode (see compute_metric_volume_3d() function in utils.py)
              patches_per_set_h,     number of high signal/edge training blocks per volume
              patches_per_set_l,     number of low signal training blocks per volume
              unet_start_ch,         number of starting channels for the U-Net

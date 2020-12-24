@@ -14,7 +14,7 @@ combomatrix = [[32, 32, 16, 16, 64, 1, 9, 10000, 10000]]
              stride_2d[1],          stride of patch selection in column direction (pixel units)
              resnet_filters,        number of convolution filters
              data_augm_factor,      data augmentation factor             
-             patch_select_mode,     patch selection mode
+             patch_select_mode,     patch selection mode (see compute_metric_volume_2d() function in utils.py)
              patches_per_set_h,     number of high signal/edge training patches per volume
              patches_per_set_l]     number of low signal training patches per volume
 '''

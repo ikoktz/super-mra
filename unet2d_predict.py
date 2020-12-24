@@ -11,7 +11,7 @@ combomatrix = [[32, 32, 16, 16, 9, 10000, 10000, 8, False]]
              blksz_2d[1],           patch size in column direction (pixel units)
              stride_2d[0],          stride of patch reconstruction in row direction (pixel units)
              stride_2d[1],          stride of patch reconstruction in column direction (pixel units)
-             patch_select_mode,     patch selection mode
+             patch_select_mode,     patch selection mode (see compute_metric_volume_2d() function in utils.py)
              patches_per_set_h,     number of high signal/edge training patches per volume
              patches_per_set_l,     number of low signal training patches per volume
              unet_start_ch,         number of starting channels for the U-Net
