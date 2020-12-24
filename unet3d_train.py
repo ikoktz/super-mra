@@ -108,22 +108,6 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 continue
 
             ###############################################################################
-            # load .tiff files from disk and count number of total slices
-            ###############################################################################
-            totalnumberofslices = 0  # count of slices for all data sets
-            slices_in_files = dict()  # to hold slice number for training from each file, used to generate unaugmented patches for 2.5D unet
-            for m, icode in enumerate(srcfiles):
-                print('counting slices for ' + icode)
-                nslices = count_tiff_slices(os.path.join(dirsource, icode), subset_train_mode, subset_train_minslc,
-                                            subset_train_maxslc, raw_projection)
-                if raw_projection == 0:
-                    slices_in_files[icode] = nslices - 2 * n_slices_exclude
-                else:
-                    slices_in_files[icode] = nslices - 2 * n_edge_after_proj
-                # update total count of slices
-                totalnumberofslices += slices_in_files[icode]
-
-            ###############################################################################
             # check if we've already trained the model; if no, train it, if yes, load it from disk
             ###############################################################################
             rstr = "res" if unet_resnet_mode else ""
