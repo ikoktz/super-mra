@@ -24,7 +24,7 @@ testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
+proj_direction = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'ssim_loss'
 sleep_when_done = False  # sleep computer when finished
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
@@ -52,10 +52,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
         # construct folder name where models are                
         if loss_function == "mean_squared_error":
-            foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+            foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                 patch_select_mode) + "_" + "mse"
         else:
-            foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+            foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                 patch_select_mode) + "_" + loss_function
 
         for optim in optimizers:  # loop through optimizers
@@ -82,7 +82,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             unet_batchnorm_str = 'F' if not unet_batchnorm else 'T'
             unet_residual_str = 'F' if not unet_residual else 'T'
 
-            n_edge_after_proj = 0  # the edge images not used after raw_projection
+            n_edge_after_proj = 0  # the edge images not used after proj_direction
             patches_per_set = patches_per_set_h + patches_per_set_l
 
             blks_rand_shift_mode = False
@@ -117,8 +117,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             for m, icode in enumerate(srcfiles):
                 print('counting slices for ' + icode)
                 nslices = count_tiff_slices(os.path.join(dirsource, icode), subset_train_mode, subset_train_minslc,
-                                            subset_train_maxslc, raw_projection)
-                if raw_projection == 0:
+                                            subset_train_maxslc, proj_direction)
+                if proj_direction == 0:
                     slices_in_files[icode] = nslices - 2 * n_slices_exclude
                 else:
                     slices_in_files[icode] = nslices - 2 * n_edge_after_proj
@@ -160,7 +160,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 ###############################################################################
                 suffix_npy = "_unet2d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
                     p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
-                    stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
+                    stride_2d[1]) + ']' + "_proj" + str(proj_direction) + "_" + reduction + "_psm" + str(
                     patch_select_mode)
 
                 if not os.path.exists(os.path.join(script_path, 'xtrain_master_noaug' + suffix_npy + '.npy')):
@@ -183,7 +183,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     # load .npy files from disk, display central coronal slice, and fill xtrain and ytrain matrices
                     ###############################################################################
                     slices_per_file = []  # recording the number of slices used for training data extractions
-                    if raw_projection > 0:
+                    if proj_direction > 0:
                         n_slices_exclude = n_edge_after_proj
 
                     for m, icode in enumerate(srcfiles):  # loop over volumes to train from
@@ -193,13 +193,13 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                         # load numpy arrays, reproject dataset (if needed) and trim and normalize dataset,
                         ###################################
                         volume1, volume1max = load_tiff_volume_and_scale_si(dirsource, icode, crop_train_x,
-                                                                            crop_train_y, blksz_2d, raw_projection,
+                                                                            crop_train_y, blksz_2d, proj_direction,
                                                                             subset_train_mode, subset_train_minslc,
                                                                             subset_train_maxslc)
 
                         print('high resolution volume is =>', tgtfiles[m])
                         volume3, volume3max = load_tiff_volume_and_scale_si(dirtarget, tgtfiles[m], crop_train_x,
-                                                                            crop_train_y, blksz_2d, raw_projection,
+                                                                            crop_train_y, blksz_2d, proj_direction,
                                                                             subset_train_mode, subset_train_minslc,
                                                                             subset_train_maxslc)
 

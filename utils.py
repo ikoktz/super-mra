@@ -204,14 +204,14 @@ def load_tiff_to_numpy_vol(path, submode, minslc, maxslc):
 
 
 # helper function that counts the number of slices in a given tiff file
-def count_tiff_slices(path, submode, minslc, maxslc, raw_projection=0):
+def count_tiff_slices(path, submode, minslc, maxslc, proj_direction=0):
     """
     function that counts the number of slices in a given tiff file
     :param path: file name of tiff stack
     :param submode: subset mode flag
     :param minslc: minimum slice for subset mode
     :param maxslc: maximum slice for subset mode
-    :param raw_projection: projection direction to read tiff along
+    :param proj_direction: projection direction to read tiff along
     :return: number of slice in stack
     """
     img = Image.open(path)  # open tiff
@@ -219,12 +219,12 @@ def count_tiff_slices(path, submode, minslc, maxslc, raw_projection=0):
     # print('img shape: ', img.size)
     if submode:  # extract a subset of slices
         nslices = min(maxslc, img.n_frames) - (minslc - 1)
-        if raw_projection > 0:
-            nslices = min(maxslc, img.size[raw_projection - 1]) - (minslc - 1)
+        if proj_direction > 0:
+            nslices = min(maxslc, img.size[proj_direction - 1]) - (minslc - 1)
     else:  # extract all slice
         nslices = img.n_frames
-        if raw_projection > 0:
-            nslices = img.size[raw_projection - 1]
+        if proj_direction > 0:
+            nslices = img.size[proj_direction - 1]
     return nslices
 
 
@@ -250,7 +250,7 @@ def get_source_and_target_files(dirsource, dirtarget):
 
 
 # helper function that loads tiff and scales signals between 0 and 1
-def load_tiff_volume_and_scale_si(in_dir, in_fname, crop_x, crop_y, blksz, raw_projection, subset_train_mode,
+def load_tiff_volume_and_scale_si(in_dir, in_fname, crop_x, crop_y, blksz, proj_direction, subset_train_mode,
                                   subset_train_minslc, subset_train_maxslc):
     """
     :param in_dir: input directory
@@ -258,7 +258,7 @@ def load_tiff_volume_and_scale_si(in_dir, in_fname, crop_x, crop_y, blksz, raw_p
     :param crop_x: crop factor in x direction
     :param crop_y: crop factor in y direction
     :param blksz: patch size (i.e. the length or height of patch, either integer or tuple)
-    :param raw_projection: projection direction
+    :param proj_direction: projection direction
     :param subset_train_mode: boolean subset mode flag
     :param subset_train_minslc: if loading a subset, min slice index to load
     :param subset_train_maxslc: if loading a subset, max slice index to load
@@ -274,7 +274,7 @@ def load_tiff_volume_and_scale_si(in_dir, in_fname, crop_x, crop_y, blksz, raw_p
     # adjust x and y dimensions of volume to divide evenly into blksz
     # while cropping using 'crop_train' to increase speed and avoid non-pertinent regions
     t = time.time()
-    vol = crop_volume_in_xy_and_reproject(vol, crop_x, crop_y, blksz, raw_projection)
+    vol = crop_volume_in_xy_and_reproject(vol, crop_x, crop_y, blksz, proj_direction)
     vol = np.float32(vol)
     if len(np.argwhere(np.isinf(vol))) > 0:
         for xyz in np.argwhere(np.isinf(vol)):
@@ -290,7 +290,7 @@ def load_tiff_volume_and_scale_si(in_dir, in_fname, crop_x, crop_y, blksz, raw_p
 
 
 # helper function that crops (in the x and y directions) and then reprojects the volume
-def crop_volume_in_xy_and_reproject(volume, cropfactor_x, cropfactor_y, blksz, raw_projection):
+def crop_volume_in_xy_and_reproject(volume, cropfactor_x, cropfactor_y, blksz, proj_direction):
     """
     function that crops the volume used for training in the x and y directions
     :param volume: input volume to crop
@@ -312,34 +312,34 @@ def crop_volume_in_xy_and_reproject(volume, cropfactor_x, cropfactor_y, blksz, r
     print('crop_volume_in_xy_and_reproject => cropped shape is', volume.shape)
 
     # reproject volume
-    if raw_projection > 0:
-        if raw_projection == 1:
+    if proj_direction > 0:
+        if proj_direction == 1:
             volume = np.moveaxis(volume, -1, 1)  # sagittal projection
-        elif raw_projection == 2:
+        elif proj_direction == 2:
             volume = np.moveaxis(volume, -1, 0)  # coronal projection
         else:
-            raise ValueError('raw_projection is invalid, quit out')
+            raise ValueError('proj_direction is invalid, quit out')
         print('crop_volume_in_xy_and_reproject => reprojected shape is', volume.shape)
 
     return volume
 
 
 # helper function that undoes a prior reprojection
-def undo_reproject(volume, raw_projection):
+def undo_reproject(volume, proj_direction):
     """
     helper function that undoes a prior reprojection
     :param volume: volume to undo reprojection on
-    :param raw_projection: direction of prior reprojection
+    :param proj_direction: direction of prior reprojection
     :return: volume with reprojection undone
     """
-    if raw_projection > 0:  # switch back to x,y,z order
+    if proj_direction > 0:  # switch back to x,y,z order
         print('undo_reproject => initial shape is', volume.shape)
-        if raw_projection == 1:
+        if proj_direction == 1:
             volume = np.moveaxis(volume, -1, 1)
-        elif raw_projection == 2:
+        elif proj_direction == 2:
             volume = np.moveaxis(volume, 0, -1)
         else:
-            raise ValueError('raw_projection is invalid, quit out')
+            raise ValueError('proj_direction is invalid, quit out')
         print('undo_reproject => output shape is', volume.shape)
     return volume
 

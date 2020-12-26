@@ -24,7 +24,7 @@ testmode = False  # test by training/predicting the first case only for one redu
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
 loss_function = 'mean_squared_error'  # 'mean_squared_error' 'ssim_loss'
 sleep_when_done = False  # sleep computer when finished
-raw_projection = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
+proj_direction = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 data_augm_factor = 1 # data augmentation factor
 patches_from_volume = True  # 0: patches selected from each slice; 1: patches selected from each whole dataset
 optimizers = ['adam']  # ['adam', 'sgd']
@@ -108,10 +108,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
             # construct folder name where models are
             if loss_function == "mean_squared_error":
-                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                     patch_select_mode) + "_" + "mse"
             else:
-                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                     patch_select_mode) + "_" + loss_function
 
             outpath = 'train_' + 'unet2d' + rstr + '_' + optim + '_' + reduction + '_batch' + str(
@@ -119,7 +119,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
             suffix_npy = "_unet2d" + rstr + "_" + str(blksz_2d[0]) + 'x' + str(blksz_2d[1]) + 'x' + str(
                 p[0]) + "(" + str(p[1]) + ")(" + str(p[2]) + ")" + "_[" + str(stride_2d[0]) + 'x' + str(
-                stride_2d[1]) + ']' + "_proj" + str(raw_projection) + "_" + reduction + "_psm" + str(
+                stride_2d[1]) + ']' + "_proj" + str(proj_direction) + "_" + reduction + "_psm" + str(
                 patch_select_mode)
 
             ###############################################################################
@@ -210,7 +210,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 volume1 = load_tiff_to_numpy_vol(inputTifs, subset_recon_mode, subset_recon_minslc, subset_recon_maxslc)
                 # adjust size to reduce computation load
                 # adjust x and y dimensions of volume to divide evenly into blksz_2d
-                volume1 = crop_volume_in_xy_and_reproject(volume1, crop_recon_x, crop_recon_y, blksz_2d, raw_projection)
+                volume1 = crop_volume_in_xy_and_reproject(volume1, crop_recon_x, crop_recon_y, blksz_2d, proj_direction)
                 if len(np.argwhere(np.isinf(volume1))) > 0:
                     for xyz in np.argwhere(np.isinf(volume1)):
                         volume1[xyz[0], xyz[1], xyz[2]] = 0
@@ -281,9 +281,9 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 print(volume_recon_ai.shape, 'after cropping')
 
                 # write reconstruction to multipage tiff stack
-                volume_recon_ai = undo_reproject(volume_recon_ai, raw_projection)  # switch back to x,y,z order
+                volume_recon_ai = undo_reproject(volume_recon_ai, proj_direction)  # switch back to x,y,z order
                 if unet_resnet_mode:
-                    volume1 = undo_reproject(volume1, raw_projection)  # switch back to x,y,z order
+                    volume1 = undo_reproject(volume1, proj_direction)  # switch back to x,y,z order
 
                 if unet_resnet_mode:  # if in unet resnet mode add output of network to lower quality input
                     print('data_airecon.shape, volume1.shape: ', volume_recon_ai.shape, volume1.shape)

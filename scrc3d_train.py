@@ -30,7 +30,7 @@ testmode_epochs = False  # limits the number of epochs
 
 # basic inputs/parameters
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
+proj_direction = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 sleep_when_done = False  # sleep computer when finished
 resnet_mode = True  # serial convolutions + residual connection mode
 resnet_cnn_depth = [7]  # number of convolutional blocks
@@ -92,7 +92,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     data_augm_factor)  # set augmentation factor to 1,2,4 or 8 based on initial value
 
                 resnet_dropout = 0
-                n_edge_after_proj = 0  # the edge images not used after raw_projection
+                n_edge_after_proj = 0  # the edge images not used after proj_direction
                 local_max_dif_mod = 1  # 0: local_max on target image, 1: local_max on weighted target-source difference image with gaussian_filter
                 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
 
@@ -108,10 +108,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 crop_train_y = 0.50 if patches_from_volume else 0.6  # was 0.5, factor for additional in-plane (i.e. x and y) cropping of volumes during training phase
 
                 if loss_function == 'mean_squared_error':
-                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                         patch_select_mode) + "_" + "mse"
                 else:
-                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                         patch_select_mode) + "_" + loss_function
 
                 ###############################################################################
@@ -189,7 +189,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                         # load .npy files from disk, display central coronal slice, and fill xtrain and ytrain matrices
                         ###############################################################################
                         slices_per_file = []  # recording the number of slices used for training data extractions
-                        if raw_projection > 0:
+                        if proj_direction > 0:
                             n_slices_exclude = n_edge_after_proj
 
                         for m, icode in enumerate(srcfiles):  # loop over volumes to train from
@@ -200,7 +200,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                             ###################################
                             volume1, volume1max = load_tiff_volume_and_scale_si(dirsource, icode, crop_train_x,
                                                                                 crop_train_y, blksz_3d[:2],
-                                                                                raw_projection,
+                                                                                proj_direction,
                                                                                 subset_train_mode, subset_train_minslc,
                                                                                 subset_train_maxslc)
 
@@ -208,7 +208,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                             volume3, volume3max = load_tiff_volume_and_scale_si(dirtarget, tgtfiles[m],
                                                                                 crop_train_x,
                                                                                 crop_train_y, blksz_3d[:2],
-                                                                                raw_projection,
+                                                                                proj_direction,
                                                                                 subset_train_mode, subset_train_minslc,
                                                                                 subset_train_maxslc)
 

@@ -21,7 +21,7 @@ combomatrix = [[32, 32, 16, 16, 64, 1, 9, 10000, 10000]]
 testmode = False  # test by training/predicting the first case only for one reduction factor
 
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
+proj_direction = 2  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'mean_squared_error' 'ssim_loss'
 sleep_when_done = False  # sleep computer when finished
 patches_from_volume = True  # False: patches selected from each slice; True: patches selected from whole volume
@@ -96,10 +96,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
 
                 # construct folder name where models are                
                 if loss_function == "mean_squared_error":
-                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                         patch_select_mode) + "_" + "mse"
                 else:
-                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                    foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                         patch_select_mode) + "_" + loss_function
 
                 # construct folder name where models are
@@ -198,7 +198,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     # adjust size to reduce computation load
                     # adjust x and y dimensions of volume to divide evenly into blksz_2d
                     volume1 = crop_volume_in_xy_and_reproject(volume1, crop_recon_x, crop_recon_y, blksz_2d[:2],
-                                                              raw_projection)
+                                                              proj_direction)
                     volume1 = np.float32(volume1)
                     if len(np.argwhere(np.isinf(volume1))) > 0:
                         for xyz in np.argwhere(np.isinf(volume1)):
@@ -271,8 +271,8 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                     print(volume_recon_ai.shape, 'after cropping')
 
                     # write reconstruction to multipage tiff stack
-                    volume_recon_ai = undo_reproject(volume_recon_ai, raw_projection)  # switch back to x,y,z order
-                    volume1 = undo_reproject(volume1, raw_projection)  # switch back to x,y,z order
+                    volume_recon_ai = undo_reproject(volume_recon_ai, proj_direction)  # switch back to x,y,z order
+                    volume1 = undo_reproject(volume1, proj_direction)  # switch back to x,y,z order
 
                     print('data_airecon.shape, volume1.shape: ', volume_recon_ai.shape, volume1.shape)
                     volume_recon_ai = volume_recon_ai + volume1

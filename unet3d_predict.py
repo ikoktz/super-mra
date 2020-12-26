@@ -24,7 +24,7 @@ combomatrix = [[8, 8, 8, 4, 4, 4, 9, 10000, 10000, 8, False]]
 testmode = False  # test by training/predicting the first case only for one reduction factor
 
 reduction_list = [3] if testmode else [2, 3, 4, 5, 6]  # resolution reduction factors to train/predict
-raw_projection = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
+proj_direction = 0  # projection direction for training; 0: no projection, 1: lateral projection, 2: frontal projection
 loss_function = 'mean_squared_error'  # 'mean_squared_error' 'ssim_loss'
 sleep_when_done = False
 leave_one_out_train = True  # performs training using a leave one out scheme
@@ -106,10 +106,10 @@ for iRed in reduction_list:  # loop over resolution reduction factors
             ###############################################################################
             # construct folder name where models are
             if loss_function == "mean_squared_error":
-                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                     patch_select_mode) + "_" + "mse"
             else:
-                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(raw_projection) + 'psm' + str(
+                foldersuffix = '_' + str(data_augm_factor) + 'aug_proj' + str(proj_direction) + 'psm' + str(
                     patch_select_mode) + "_" + loss_function
 
             print(foldersuffix)
@@ -224,7 +224,7 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                 # adjust size to reduce computation load
                 # adjust x and y dimensions of volume to divide evenly into blksz_3d
                 volume1 = crop_volume_in_xy_and_reproject(volume1, crop_recon_x, crop_recon_y, blksz_3d[:2],
-                                                          raw_projection)
+                                                          proj_direction)
                 if len(np.argwhere(np.isinf(volume1))) > 0:
                     for xyz in np.argwhere(np.isinf(volume1)):
                         volume1[xyz[0], xyz[1], xyz[2]] = 0
@@ -398,9 +398,9 @@ for iRed in reduction_list:  # loop over resolution reduction factors
                                           :volume_recon_ai.shape[1] - npadvoxs[1], :]
 
                 # write reconstruction to multipage tiff stack
-                volume_recon_ai = undo_reproject(volume_recon_ai, raw_projection)  # switch back to x,y,z order
+                volume_recon_ai = undo_reproject(volume_recon_ai, proj_direction)  # switch back to x,y,z order
                 if unet_resnet_mode:
-                    volume1 = undo_reproject(volume1, raw_projection)  # switch back to x,y,z order
+                    volume1 = undo_reproject(volume1, proj_direction)  # switch back to x,y,z order
 
                 if unet_resnet_mode:  # if in unet resnet mode add output of network to lower quality input
                     print('data_airecon.shape, volume1.shape: ', volume_recon_ai.shape, volume1.shape)
